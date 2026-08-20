@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<!--
+  WHAT: host page for the background script.
+
+  WHY an HTML page rather than "background.scripts": scripts declared in the manifest are
+  not ES modules, so no imports. A page allows <script type="module"> and keeps the code
+  split into modules that can be tested one at a time.
+
+  WHY persistent:true (MV2) and not MV3: under MV3 the background is unloaded when idle.
+  But its memory is exactly what holds the decryption key -- unloading would drop it at an
+  unpredictable moment, and the user would be asked for their passphrase again for no
+  visible reason. Choosing MV2 here is a security-model decision, not technical debt.
+-->
+<meta charset="utf-8">
+<script type="module" src="./background.js"></script>

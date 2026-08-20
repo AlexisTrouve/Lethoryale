@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+  WHAT: fidelity test bench. Captures a domain's cookies, removes them, restores them,
+  then compares before and after, field by field.
+
+  WHY: this is the gate for the whole project. Until this bench reports zero deltas, no
+  real domain should be trusted to the vault. We don't declare restore "faithful" because
+  the code looks right: we run the round trip in an actual browser and read the result.
+
+  HOW: open via about:debugging (This Firefox -> Inspect -> the harness tab), or paste
+  moz-extension://<id>/test/harness.html. Log into the test domain in a tab first, so
+  there is something to capture.
+
+  ⚠️ Use a domain you DON'T CARE ABOUT. This bench really deletes the cookies before
+  putting them back: a bug here logs you out of the site under test.
+-->
+<meta charset="utf-8">
+<title>Lethoryale — fidelity bench</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 14px/1.5 system-ui, sans-serif; max-width: 60rem; margin: 2rem auto; padding: 0 1rem; }
+  input, button { font: inherit; padding: .4rem .6rem; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+  th, td { border: 1px solid currentColor; padding: .3rem .5rem; text-align: left; }
+  .ok { color: #0a0; font-weight: bold; }
+  .ko { color: #c00; font-weight: bold; }
+  pre { white-space: pre-wrap; }
+</style>
+
+<h1>Fidelity bench</h1>
+<p>
+  Full round trip on one domain: <strong>capture → remove → restore → compare</strong>.
+  The test passes only when the delta table is empty.
+</p>
+<p>
+  <label>Domain: <input id="domain" size="30" placeholder="example.com"></label>
+  <button id="run">Run round trip</button>
+</p>
+<div id="out"></div>
+
+<script type="module">
+import { captureDomain, remove, restore, diff } from "../src/cookies.js";
+
+const out = document.getElementById("out");
+const write = (html) => { out.innerHTML += html; };
+
+document.getElementById("run").addEventListener("click", async () => {
+  const domain = document.getElementById("domain").value.trim().replace(/^\./, "");
+  out.innerHTML = "";
+  if (!domain) { write(`<p class="ko">Enter a domain.</p>`); return; }
+
+  // 1. Capture. Keep a deep copy: the objects returned by the API could in principle be
+  //    reused, and we want a frozen point of comparison.
+  const before = structuredClone(await captureDomain(domain));
+  write(`<p><strong>${before.length}</strong> cookie(s) captured on <code>${domain}</code>.</p>`);
+  if (before.length === 0) {
+    write(`<p class="ko">Nothing to test — log into the site in a tab first.</p>`);
+    return;
+  }
+
+  // 2. Removal. This is the destructive step: if the restore below fails, the session for
+  //    the domain under test is gone. Hence the warning at the top of this file.
+  const r = await remove(before);
+  write(`<p>Removed: <strong>${r.removed}</strong> / ${before.length}` +
+        (r.failures.length ? ` — <span class="ko">${r.failures.length} failure(s)</span>` : ``) + `</p>`);
+
+  // 3. Restore from the capture.
+  const s = await restore(before);
+  write(`<p>Restored: <strong>${s.restored}</strong> / ${before.length}` +
+        (s.failures.length ? ` — <span class="ko">${s.failures.length} failure(s)</span>` : ``) + `</p>`);
+  if (s.failures.length) {
+    write(`<pre>${s.failures.map(f => `${f.name} @ ${f.domain}: ${f.reason}`).join("\n")}</pre>`);
+  }
+
+  // 4. Compare against what the browser actually holds, rather than trusting the counters
+  //    above. A set() that returns without error may still have written something other
+  //    than what it was asked for.
+  const after = await captureDomain(domain);
+  const deltas = diff(before, after);
+
+  if (deltas.length === 0) {
+    write(`<h2 class="ok">No deltas — restore is faithful on this domain.</h2>`);
+  } else {
+    write(`<h2 class="ko">${deltas.length} delta(s)</h2>
+      <table><tr><th>Cookie</th><th>Field</th><th>Before → after</th></tr>` +
+      deltas.map(d => `<tr><td><code>${d.name}</code></td><td>${d.field}</td><td>${d.note}</td></tr>`).join("") +
+      `</table>`);
+  }
+});
+</script>

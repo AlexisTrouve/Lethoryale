@@ -1,0 +1,16 @@
+# Extension build artifacts
+*.xpi
+*.zip
+web-ext-artifacts/
+
+# Dependencies, should tooling ever show up
+node_modules/
+
+# Nothing local should ship: the list of protected domains is specific to each
+# user and has no place in a public repository.
+config.local.json
+.env
+
+# OS
+Thumbs.db
+.DS_Store
