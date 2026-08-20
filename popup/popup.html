@@ -1,14 +1,19 @@
 <!DOCTYPE html>
-<!-- WHAT: unlock UI. A stub for now: the fidelity bench (test/harness.html) has to pass
-     before anything gets wired up. -->
+<!-- WHAT: unlock UI. Still a stub, but it now proves the extension is alive and opens the
+     fidelity bench, so nobody has to reconstruct a moz-extension:// URL by hand. -->
 <meta charset="utf-8">
 <title>Lethoryale</title>
 <style>
   :root { color-scheme: light dark; }
-  body { font: 13px/1.4 system-ui, sans-serif; width: 17rem; padding: .8rem; }
-  h1 { font-size: 1rem; margin: 0 0 .5rem; }
-  p { margin: .3rem 0; opacity: .8; }
+  body { font: 13px/1.5 system-ui, sans-serif; width: 18rem; padding: .9rem; }
+  h1 { font-size: 1rem; margin: 0 0 .6rem; }
+  p { margin: .35rem 0; }
+  .muted { opacity: .7; }
+  .ok { color: #0a0; font-weight: bold; }
+  button { font: inherit; padding: .45rem .7rem; margin-top: .7rem; width: 100%; }
 </style>
 <h1>Lethoryale</h1>
-<p>Status: <strong>not wired up</strong></p>
-<p>Validate the fidelity bench first.</p>
+<p>Background: <span id="state" class="muted">checking…</span></p>
+<p class="muted">Vault not wired up yet — validate restore fidelity first.</p>
+<button id="bench">Open fidelity bench</button>
+<script src="popup.js"></script>
